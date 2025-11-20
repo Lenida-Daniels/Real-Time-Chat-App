@@ -1,5 +1,6 @@
 # Real-Time-Chat-App
 ## Project Structure
+```
 real_time_chat_app/
 │
 ├── backend/                         # FastAPI backend + Redis integration
@@ -19,3 +20,4 @@ real_time_chat_app/
 │   └── script.js                    # JS: WebSocket connection, send/receive messages
 │
 └── README.md                        # Overview, setup instructions, team info
+```
