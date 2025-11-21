@@ -42,7 +42,10 @@ chat-app/
 │           └── chat.css
 │
 └── redis/
-    └── setup_instructions.txt
+    ├── redis_client.py
+    ├── publisher.py
+    ├── subscriber.py
+    └── message_model.py
 ```
 
 ---
@@ -191,7 +194,10 @@ UI refreshes immediately without reload.
 
 | File                     | Description                            |
 | ------------------------ | -------------------------------------- |
-| `setup_instructions.txt` | How to install Redis/Memurai on system |
+| `redis_client.py`        | Connection to Redis/Memurai            |
+| `publisher.py`           | Publishes messages to Redis channels   |
+| `subscriber.py`          | Subscribes/listens to Redis channels   |
+| `message_model.py`       | Creates consistent chat message format |
 
 ---
 
