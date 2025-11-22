@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Real-Time Chat App</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="chat-wrapper">
+  <div class="sidebar">
+    <h2>Users Online</h2>
+    <ul id="users-list"></ul>
+    <div id="typing-indicator"></div>
+  </div>
+
+  <div class="chat-container">
+    <div class="chat-header">
+      <h2>Chat Room</h2>
+    </div>
+    <div class="chat-messages" id="chat-messages"></div>
+    <form id="chat-form">
+      <input type="text" id="message-input" placeholder="Type a message..." autocomplete="off" required>
+      <input type="file" id="image-input" accept="image/*">
+      <button type="submit">Send</button>
+      <button type="button" id="voice-btn">🎤</button>
+    </form>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
