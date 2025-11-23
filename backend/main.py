@@ -26,9 +26,11 @@ import uvicorn
 # Add parent directory to Python path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from models.message import Message, MessageCreate, MessageResponse, ChatHistory
+from models.message import Message, MessageCreate, MessageResponse, ChatHistory, User, UserCreate, UserLogin, Group, GroupCreate, GroupUpdate, ProfileUpdate
 from services.chat_service import chat_service
 from services.user_service import user_service
+from services.auth_service import auth_service
+from services.group_service import group_service
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from chat_redis.subscriber import subscribe_to_channel
@@ -478,6 +480,360 @@ async def delete_message(message_id: str, channel: str):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error deleting message: {str(e)}")
+
+
+# Authentication Endpoints
+
+@app.post("/api/auth/register", response_model=dict)
+async def register_user(user_data: UserCreate):
+    """
+    Register a new user with username and phone number.
+    
+    Args:
+        user_data: User registration data
+    
+    Returns:
+        dict: Registration result with user data or error
+    """
+    try:
+        # Check if username exists
+        if await auth_service.username_exists(user_data.username):
+            suggestions = await auth_service.suggest_usernames(user_data.username)
+            return {
+                "success": False,
+                "message": "Username already exists",
+                "suggestions": suggestions
+            }
+        
+        # Check if phone exists
+        if await auth_service.phone_exists(user_data.phone_number):
+            return {
+                "success": False,
+                "message": "Phone number already registered"
+            }
+        
+        # Register user
+        user = await auth_service.register_user(user_data)
+        
+        if user:
+            return {
+                "success": True,
+                "message": "User registered successfully",
+                "user": {
+                    "username": user.username,
+                    "display_name": user.display_name,
+                    "avatar_url": user.avatar_url,
+                    "created_at": user.created_at.isoformat()
+                }
+            }
+        else:
+            return {
+                "success": False,
+                "message": "Registration failed"
+            }
+            
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Registration error: {str(e)}")
+
+
+@app.post("/api/auth/login", response_model=dict)
+async def login_user(login_data: UserLogin):
+    """
+    Login user with username and phone number.
+    
+    Args:
+        login_data: Login credentials
+    
+    Returns:
+        dict: Login result with user data or error
+    """
+    try:
+        user = await auth_service.login_user(login_data)
+        
+        if user:
+            return {
+                "success": True,
+                "message": "Login successful",
+                "user": {
+                    "username": user.username,
+                    "display_name": user.display_name,
+                    "avatar_url": user.avatar_url,
+                    "phone_number": user.phone_number,
+                    "last_login": user.last_login.isoformat() if user.last_login else None
+                }
+            }
+        else:
+            return {
+                "success": False,
+                "message": "Invalid username or phone number"
+            }
+            
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Login error: {str(e)}")
+
+
+@app.get("/api/auth/check-username/{username}")
+async def check_username(username: str):
+    """
+    Check if username is available.
+    
+    Args:
+        username: Username to check
+    
+    Returns:
+        dict: Availability status and suggestions if taken
+    """
+    try:
+        exists = await auth_service.username_exists(username)
+        
+        if exists:
+            suggestions = await auth_service.suggest_usernames(username)
+            return {
+                "available": False,
+                "message": "Username already taken",
+                "suggestions": suggestions
+            }
+        else:
+            return {
+                "available": True,
+                "message": "Username is available"
+            }
+            
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error checking username: {str(e)}")
+
+
+@app.get("/api/users/all")
+async def get_all_users():
+    """
+    Get all registered users (for admin or development).
+    
+    Returns:
+        dict: List of all users
+    """
+    try:
+        users = await auth_service.get_all_users()
+        return {
+            "users": [{
+                "username": user.username,
+                "display_name": user.display_name,
+                "avatar_url": user.avatar_url,
+                "created_at": user.created_at.isoformat(),
+                "is_active": user.is_active
+            } for user in users],
+            "count": len(users)
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error retrieving users: {str(e)}")
+
+
+# Profile Management Endpoints
+
+@app.put("/api/profile/{username}")
+async def update_profile(username: str, profile_data: ProfileUpdate):
+    """
+    Update user profile.
+    
+    Args:
+        username: Username to update
+        profile_data: Profile update data
+    
+    Returns:
+        dict: Updated profile information
+    """
+    try:
+        user = await auth_service.get_user(username)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Update fields
+        if profile_data.display_name is not None:
+            user.display_name = profile_data.display_name
+        if profile_data.avatar_url is not None:
+            user.avatar_url = profile_data.avatar_url
+        if profile_data.phone_number is not None:
+            # Check if new phone number is already taken
+            if await auth_service.phone_exists(profile_data.phone_number):
+                existing_user = await auth_service.get_user_by_phone(profile_data.phone_number)
+                if existing_user and existing_user.username != username:
+                    return {
+                        "success": False,
+                        "message": "Phone number already in use by another account"
+                    }
+            user.phone_number = profile_data.phone_number
+        
+        # Save updated user
+        success = await auth_service.update_user(user)
+        
+        if success:
+            return {
+                "success": True,
+                "message": "Profile updated successfully",
+                "user": {
+                    "username": user.username,
+                    "display_name": user.display_name,
+                    "avatar_url": user.avatar_url,
+                    "phone_number": user.phone_number
+                }
+            }
+        else:
+            return {
+                "success": False,
+                "message": "Failed to update profile"
+            }
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error updating profile: {str(e)}")
+
+
+# Group Management Endpoints
+
+@app.post("/api/groups/create")
+async def create_group(group_data: GroupCreate):
+    """
+    Create a new group.
+    
+    Args:
+        group_data: Group creation data
+    
+    Returns:
+        dict: Created group information
+    """
+    try:
+        group = await group_service.create_group(group_data)
+        
+        if group:
+            return {
+                "success": True,
+                "message": "Group created successfully",
+                "group": {
+                    "id": group.id,
+                    "name": group.name,
+                    "description": group.description,
+                    "image_url": group.image_url,
+                    "created_by": group.created_by,
+                    "created_at": group.created_at.isoformat(),
+                    "members": group.members,
+                    "admins": group.admins
+                }
+            }
+        else:
+            return {
+                "success": False,
+                "message": "Failed to create group"
+            }
+            
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error creating group: {str(e)}")
+
+
+@app.put("/api/groups/{group_id}")
+async def update_group(group_id: str, update_data: GroupUpdate, updated_by: str):
+    """
+    Update group information.
+    
+    Args:
+        group_id: Group ID to update
+        update_data: Update data
+        updated_by: Username of user making the update
+    
+    Returns:
+        dict: Updated group information
+    """
+    try:
+        group = await group_service.update_group(group_id, update_data, updated_by)
+        
+        if group:
+            return {
+                "success": True,
+                "message": "Group updated successfully",
+                "group": {
+                    "id": group.id,
+                    "name": group.name,
+                    "description": group.description,
+                    "image_url": group.image_url,
+                    "members": group.members,
+                    "admins": group.admins
+                }
+            }
+        else:
+            return {
+                "success": False,
+                "message": "Failed to update group or insufficient permissions"
+            }
+            
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error updating group: {str(e)}")
+
+
+@app.get("/api/groups/{group_id}")
+async def get_group(group_id: str):
+    """
+    Get group information.
+    
+    Args:
+        group_id: Group ID to retrieve
+    
+    Returns:
+        dict: Group information
+    """
+    try:
+        group = await group_service.get_group(group_id)
+        
+        if group:
+            return {
+                "success": True,
+                "group": {
+                    "id": group.id,
+                    "name": group.name,
+                    "description": group.description,
+                    "image_url": group.image_url,
+                    "created_by": group.created_by,
+                    "created_at": group.created_at.isoformat(),
+                    "members": group.members,
+                    "admins": group.admins
+                }
+            }
+        else:
+            raise HTTPException(status_code=404, detail="Group not found")
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error retrieving group: {str(e)}")
+
+
+@app.get("/api/users/{username}/groups")
+async def get_user_groups(username: str):
+    """
+    Get all groups for a user.
+    
+    Args:
+        username: Username to get groups for
+    
+    Returns:
+        dict: List of user's groups
+    """
+    try:
+        groups = await group_service.get_user_groups(username)
+        
+        return {
+            "groups": [{
+                "id": group.id,
+                "name": group.name,
+                "description": group.description,
+                "image_url": group.image_url,
+                "created_by": group.created_by,
+                "member_count": len(group.members),
+                "is_admin": username in group.admins
+            } for group in groups],
+            "count": len(groups)
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error retrieving user groups: {str(e)}")
 
 
 # Background task for cleanup

@@ -17,68 +17,33 @@ document.addEventListener("DOMContentLoaded", () => {
   console.log('API Base URL:', API_BASE_URL);
   console.log('WebSocket URL:', WS_URL);
   
-  // Username validation and management
-  let username = localStorage.getItem('chat_username');
-  let onlineUsernames = [];
+  // User authentication management
+  let currentUser = null;
+  let username = null;
   
-  // Function to check if username exists
-  async function checkUsernameExists(name) {
+  // Check if user is authenticated
+  function checkAuthentication() {
+    const userData = localStorage.getItem('chat_user');
+    
+    if (!userData) {
+      // Redirect to authentication page
+      window.location.href = 'auth.html';
+      return false;
+    }
+    
     try {
-      const response = await fetch(`${API_BASE_URL}/api/users/online/${CHANNEL}`);
-      const data = await response.json();
-      onlineUsernames = data.online_users.map(user => user.username.toLowerCase());
-      return onlineUsernames.includes(name.toLowerCase());
+      currentUser = JSON.parse(userData);
+      username = currentUser.username;
+      return true;
     } catch (error) {
-      console.log('Could not check online users, proceeding with username');
+      console.error('Error parsing user data:', error);
+      localStorage.removeItem('chat_user');
+      window.location.href = 'auth.html';
       return false;
     }
   }
   
-  // Function to get unique username
-  async function getUniqueUsername() {
-    let proposedUsername = username;
-    
-    if (!proposedUsername) {
-      proposedUsername = prompt('Enter your username:');
-    }
-    
-    if (!proposedUsername) {
-      proposedUsername = `User${Math.floor(Math.random() * 1000)}`;
-    }
-    
-    // Check if username exists
-    const exists = await checkUsernameExists(proposedUsername);
-    
-    if (exists) {
-      const suggestions = [
-        `${proposedUsername}${Math.floor(Math.random() * 100)}`,
-        `${proposedUsername}_${Math.floor(Math.random() * 100)}`,
-        `${proposedUsername}${new Date().getSeconds()}`
-      ];
-      
-      const choice = prompt(
-        `Username "${proposedUsername}" is already taken.\n\nSuggestions:\n` +
-        suggestions.map((s, i) => `${i + 1}. ${s}`).join('\n') +
-        '\n\nEnter a new username or choose a number (1-3):'
-      );
-      
-      if (choice && !isNaN(choice) && choice >= 1 && choice <= 3) {
-        proposedUsername = suggestions[choice - 1];
-      } else if (choice) {
-        proposedUsername = choice;
-        // Recursively check if new username also exists
-        return await getUniqueUsername();
-      } else {
-        proposedUsername = suggestions[0];
-      }
-    }
-    
-    localStorage.setItem('chat_username', proposedUsername);
-    return proposedUsername;
-  }
-  
-  // Will be set after username validation
-  let currentUser = null;
+  // User will be set after authentication check
   
   // WebSocket connection
   let websocket = null;
@@ -210,14 +175,118 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
   
-  // Function to change username
-  function changeUsername() {
-    const newUsername = prompt('Enter new username:', username);
-    if (newUsername && newUsername !== username) {
-      localStorage.setItem('chat_username', newUsername);
-      location.reload(); // Reload to reconnect with new username
+  // Function to logout
+  function logout() {
+    if (confirm('Are you sure you want to logout?')) {
+      localStorage.removeItem('chat_user');
+      if (websocket) {
+        websocket.close();
+      }
+      window.location.href = 'auth.html';
     }
   }
+  
+  // Make functions global
+  window.logout = logout;
+  window.openProfileSettings = openProfileSettings;
+  window.openGroupSettings = openGroupSettings;
+  window.closeModal = closeModal;
+  
+  // Modal functions
+  function openProfileSettings() {
+    // Populate current user data
+    document.getElementById('profile-display-name').value = currentUser.display_name || '';
+    document.getElementById('profile-avatar').value = currentUser.avatar_url || '';
+    document.getElementById('profile-phone').value = currentUser.phone_number || '';
+    
+    document.getElementById('profile-modal').style.display = 'flex';
+  }
+  
+  function openGroupSettings() {
+    // For now, use default group settings
+    document.getElementById('group-name').value = 'Group Chat';
+    document.getElementById('group-description').value = 'General discussion group';
+    document.getElementById('group-image').value = 'https://i.pravatar.cc/150?u=group';
+    
+    document.getElementById('group-modal').style.display = 'flex';
+  }
+  
+  function closeModal(modalId) {
+    document.getElementById(modalId).style.display = 'none';
+  }
+  
+  // Profile form handler
+  document.getElementById('profile-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const displayName = document.getElementById('profile-display-name').value.trim();
+    const avatarUrl = document.getElementById('profile-avatar').value.trim();
+    const phoneNumber = document.getElementById('profile-phone').value.trim();
+    
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/profile/${currentUser.username}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          display_name: displayName,
+          avatar_url: avatarUrl,
+          phone_number: phoneNumber
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        // Update local user data
+        currentUser = { ...currentUser, ...data.user };
+        localStorage.setItem('chat_user', JSON.stringify(currentUser));
+        
+        // Update UI
+        document.querySelector('.user-info span').textContent = currentUser.display_name;
+        document.querySelector('.profile-pic').src = currentUser.avatar_url;
+        
+        showNotification('Profile updated successfully!');
+        closeModal('profile-modal');
+      } else {
+        showNotification(data.message || 'Failed to update profile');
+      }
+      
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      showNotification('Error updating profile. Please try again.');
+    }
+  });
+  
+  // Group form handler
+  document.getElementById('group-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const groupName = document.getElementById('group-name').value.trim();
+    const groupDescription = document.getElementById('group-description').value.trim();
+    const groupImage = document.getElementById('group-image').value.trim();
+    
+    try {
+      // For now, just update the UI (you can implement actual group update later)
+      document.querySelector('.contact-details h3').textContent = groupName;
+      document.querySelector('.contact-pic').src = groupImage || 'https://i.pravatar.cc/40?u=group';
+      
+      showNotification('Group settings updated!');
+      closeModal('group-modal');
+      
+    } catch (error) {
+      console.error('Error updating group:', error);
+      showNotification('Error updating group. Please try again.');
+    }
+  });
+  
+  // Close modal when clicking outside
+  window.addEventListener('click', (e) => {
+    if (e.target.classList.contains('modal')) {
+      e.target.style.display = 'none';
+    }
+  });
   
   // Initialize chat list
   function initializeChatList() {
@@ -601,20 +670,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Initialize application
   async function initializeApp() {
-    // Get and validate username first
-    username = await getUniqueUsername();
-    
-    currentUser = {
-      name: username,
-      avatar: "https://i.pravatar.cc/40?img=1"
-    };
+    // Check authentication first
+    if (!checkAuthentication()) {
+      return; // Will redirect to auth page
+    }
     
     initializeChatList();
     toggleSendVoiceButton();
     connectWebSocket();
     
-    // Update profile name
-    document.querySelector('.user-info span').textContent = username;
+    // Update profile info
+    document.querySelector('.user-info span').textContent = currentUser.display_name || currentUser.username;
+    document.querySelector('.profile-pic').src = currentUser.avatar_url;
     
     // Show welcome message and test backend connection
     setTimeout(async () => {
@@ -622,7 +689,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const response = await fetch(`${API_BASE_URL}/`);
         const data = await response.json();
         console.log('✅ Backend API test successful:', data);
-        showNotification(`Welcome ${username}! Backend is running.`);
+        showNotification(`Welcome back, ${currentUser.display_name || currentUser.username}!`);
       } catch (error) {
         console.error('❌ Backend API test failed:', error);
         showNotification('Warning: Cannot reach backend API. Check if server is running.');

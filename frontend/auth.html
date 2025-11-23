@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Join Chat - Real-Time Chat App</title>
+<link rel="stylesheet" href="style.css">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+<style>
+.auth-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #6c5ce7, #4e73df);
+  padding: 20px;
+}
+
+.auth-card {
+  background: white;
+  border-radius: 20px;
+  padding: 40px;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+  width: 100%;
+  max-width: 400px;
+  text-align: center;
+}
+
+.auth-header {
+  margin-bottom: 30px;
+}
+
+.auth-header h1 {
+  color: #333;
+  margin-bottom: 10px;
+  font-size: 28px;
+}
+
+.auth-header p {
+  color: #666;
+  font-size: 16px;
+}
+
+.form-group {
+  margin-bottom: 20px;
+  text-align: left;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  color: #333;
+  font-weight: 500;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 15px;
+  border: 2px solid #e1e5e9;
+  border-radius: 10px;
+  font-size: 16px;
+  transition: border-color 0.3s;
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: #6c5ce7;
+}
+
+.btn {
+  width: 100%;
+  padding: 15px;
+  background: #6c5ce7;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.3s;
+  margin-bottom: 15px;
+}
+
+.btn:hover {
+  background: #5a4fcf;
+}
+
+.btn:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.toggle-form {
+  color: #6c5ce7;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.error-message {
+  background: #ffe6e6;
+  color: #d63031;
+  padding: 10px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  font-size: 14px;
+}
+
+.success-message {
+  background: #e6f7e6;
+  color: #00b894;
+  padding: 10px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  font-size: 14px;
+}
+
+.suggestions {
+  background: #f8f9fa;
+  padding: 15px;
+  border-radius: 8px;
+  margin-top: 10px;
+  text-align: left;
+}
+
+.suggestions h4 {
+  margin-bottom: 10px;
+  color: #333;
+}
+
+.suggestion-item {
+  padding: 8px 12px;
+  background: #e9ecef;
+  margin: 5px 0;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.suggestion-item:hover {
+  background: #6c5ce7;
+  color: white;
+}
+
+.loading {
+  display: none;
+  margin: 10px 0;
+}
+
+.loading.show {
+  display: block;
+}
+</style>
+</head>
+<body>
+
+<div class="auth-container">
+  <div class="auth-card">
+    <div class="auth-header">
+      <h1><i class="fas fa-comments"></i> Real-Time Chat</h1>
+      <p id="auth-subtitle">Join the conversation</p>
+    </div>
+
+    <div id="error-message" class="error-message" style="display: none;"></div>
+    <div id="success-message" class="success-message" style="display: none;"></div>
+
+    <!-- Registration Form -->
+    <form id="register-form">
+      <div class="form-group">
+        <label for="reg-username">Username</label>
+        <input type="text" id="reg-username" placeholder="Enter your username" required>
+      </div>
+      
+      <div class="form-group">
+        <label for="reg-phone">Phone Number</label>
+        <input type="tel" id="reg-phone" placeholder="Enter your phone number" required>
+      </div>
+      
+      <div class="form-group">
+        <label for="reg-display-name">Display Name (Optional)</label>
+        <input type="text" id="reg-display-name" placeholder="How others will see you">
+      </div>
+
+      <div id="username-suggestions" class="suggestions" style="display: none;">
+        <h4>Username suggestions:</h4>
+        <div id="suggestions-list"></div>
+      </div>
+
+      <div class="loading" id="loading">
+        <i class="fas fa-spinner fa-spin"></i> Processing...
+      </div>
+
+      <button type="submit" class="btn" id="register-btn">
+        <i class="fas fa-user-plus"></i> Create Account
+      </button>
+      
+      <p>Already have an account? <span class="toggle-form" onclick="toggleForm()">Login here</span></p>
+    </form>
+
+    <!-- Login Form -->
+    <form id="login-form" style="display: none;">
+      <div class="form-group">
+        <label for="login-username">Username</label>
+        <input type="text" id="login-username" placeholder="Enter your username" required>
+      </div>
+      
+      <div class="form-group">
+        <label for="login-phone">Phone Number</label>
+        <input type="tel" id="login-phone" placeholder="Enter your phone number" required>
+      </div>
+
+      <div class="loading" id="login-loading">
+        <i class="fas fa-spinner fa-spin"></i> Logging in...
+      </div>
+
+      <button type="submit" class="btn" id="login-btn">
+        <i class="fas fa-sign-in-alt"></i> Login
+      </button>
+      
+      <p>Don't have an account? <span class="toggle-form" onclick="toggleForm()">Register here</span></p>
+    </form>
+  </div>
+</div>
+
+<script>
+const API_BASE_URL = 'http://localhost:8000';
+let isLoginForm = false;
+
+// Toggle between login and register forms
+function toggleForm() {
+  const registerForm = document.getElementById('register-form');
+  const loginForm = document.getElementById('login-form');
+  const subtitle = document.getElementById('auth-subtitle');
+  
+  isLoginForm = !isLoginForm;
+  
+  if (isLoginForm) {
+    registerForm.style.display = 'none';
+    loginForm.style.display = 'block';
+    subtitle.textContent = 'Welcome back!';
+  } else {
+    registerForm.style.display = 'block';
+    loginForm.style.display = 'none';
+    subtitle.textContent = 'Join the conversation';
+  }
+  
+  clearMessages();
+}
+
+// Show error message
+function showError(message) {
+  const errorDiv = document.getElementById('error-message');
+  const successDiv = document.getElementById('success-message');
+  
+  errorDiv.textContent = message;
+  errorDiv.style.display = 'block';
+  successDiv.style.display = 'none';
+}
+
+// Show success message
+function showSuccess(message) {
+  const errorDiv = document.getElementById('error-message');
+  const successDiv = document.getElementById('success-message');
+  
+  successDiv.textContent = message;
+  successDiv.style.display = 'block';
+  errorDiv.style.display = 'none';
+}
+
+// Clear messages
+function clearMessages() {
+  document.getElementById('error-message').style.display = 'none';
+  document.getElementById('success-message').style.display = 'none';
+  document.getElementById('username-suggestions').style.display = 'none';
+}
+
+// Show username suggestions
+function showSuggestions(suggestions) {
+  const suggestionsDiv = document.getElementById('username-suggestions');
+  const suggestionsList = document.getElementById('suggestions-list');
+  
+  suggestionsList.innerHTML = '';
+  
+  suggestions.forEach(suggestion => {
+    const item = document.createElement('div');
+    item.className = 'suggestion-item';
+    item.textContent = suggestion;
+    item.onclick = () => {
+      document.getElementById('reg-username').value = suggestion;
+      suggestionsDiv.style.display = 'none';
+    };
+    suggestionsList.appendChild(item);
+  });
+  
+  suggestionsDiv.style.display = 'block';
+}
+
+// Register form handler
+document.getElementById('register-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  
+  const username = document.getElementById('reg-username').value.trim();
+  const phone = document.getElementById('reg-phone').value.trim();
+  const displayName = document.getElementById('reg-display-name').value.trim();
+  
+  if (!username || !phone) {
+    showError('Please fill in all required fields');
+    return;
+  }
+  
+  const loading = document.getElementById('loading');
+  const btn = document.getElementById('register-btn');
+  
+  loading.classList.add('show');
+  btn.disabled = true;
+  clearMessages();
+  
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        username: username,
+        phone_number: phone,
+        display_name: displayName || username
+      })
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      showSuccess('Account created successfully! Redirecting to chat...');
+      
+      // Store user data
+      localStorage.setItem('chat_user', JSON.stringify(data.user));
+      
+      // Redirect to chat after 2 seconds
+      setTimeout(() => {
+        window.location.href = 'index.html';
+      }, 2000);
+      
+    } else {
+      showError(data.message);
+      
+      if (data.suggestions && data.suggestions.length > 0) {
+        showSuggestions(data.suggestions);
+      }
+    }
+    
+  } catch (error) {
+    showError('Network error. Please check your connection and try again.');
+    console.error('Registration error:', error);
+  } finally {
+    loading.classList.remove('show');
+    btn.disabled = false;
+  }
+});
+
+// Login form handler
+document.getElementById('login-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  
+  const username = document.getElementById('login-username').value.trim();
+  const phone = document.getElementById('login-phone').value.trim();
+  
+  if (!username || !phone) {
+    showError('Please fill in all fields');
+    return;
+  }
+  
+  const loading = document.getElementById('login-loading');
+  const btn = document.getElementById('login-btn');
+  
+  loading.classList.add('show');
+  btn.disabled = true;
+  clearMessages();
+  
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        username: username,
+        phone_number: phone
+      })
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      showSuccess('Login successful! Redirecting to chat...');
+      
+      // Store user data
+      localStorage.setItem('chat_user', JSON.stringify(data.user));
+      
+      // Redirect to chat after 2 seconds
+      setTimeout(() => {
+        window.location.href = 'index.html';
+      }, 2000);
+      
+    } else {
+      showError(data.message);
+    }
+    
+  } catch (error) {
+    showError('Network error. Please check your connection and try again.');
+    console.error('Login error:', error);
+  } finally {
+    loading.classList.remove('show');
+    btn.disabled = false;
+  }
+});
+
+// Check if user is already logged in
+window.addEventListener('load', () => {
+  const userData = localStorage.getItem('chat_user');
+  if (userData) {
+    // User already logged in, redirect to chat
+    window.location.href = 'index.html';
+  }
+});
+</script>
+
+</body>
+</html>
