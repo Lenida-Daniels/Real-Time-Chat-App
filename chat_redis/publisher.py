@@ -1,6 +1,6 @@
 # Create Function to PUBLISH Chat Messages
 import json #Redis Pub/Sub transmits strings, so serialize message dict to JSON.
-from redis_client import redis_client
+from .redis_client import redis_client
 
 #a function that other code (FastAPI) will call when a message should be broadcast.
 def publish_message(channel: str, message: dict):

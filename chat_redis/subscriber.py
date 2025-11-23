@@ -1,6 +1,6 @@
 #Create Function to SUBSCRIBE to Chat Channels
 import json #convert incoming JSON strings back into Python dicts.
-from redis_client import redis_client
+from .redis_client import redis_client
 
 # FastAPI will often iterate over this generator to forward messages to WebSocket clients.
 # Creates a PubSub object from the Redis client. This object manages subscriptions and listens for messages.

@@ -5,27 +5,75 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Real-Time Chat App</title>
 <link rel="stylesheet" href="style.css">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
 <body>
 
-<div class="chat-wrapper">
+<div class="chat-app-container">
+  <!-- Sidebar -->
   <div class="sidebar">
-    <h2>Users Online</h2>
-    <ul id="users-list"></ul>
-    <div id="typing-indicator"></div>
+    <div class="sidebar-header">
+      <div class="user-info">
+        <img src="https://i.pravatar.cc/40?img=1" alt="Profile" class="profile-pic">
+        <span>My Profile</span>
+      </div>
+      <div class="header-icons">
+        <i class="fas fa-circle-notch"></i>
+        <i class="fas fa-comment-alt"></i>
+        <i class="fas fa-user-edit" title="Change Username" onclick="changeUsername()"></i>
+        <i class="fas fa-ellipsis-v"></i>
+      </div>
+    </div>
+    
+    <div class="search-container">
+      <div class="search-box">
+        <i class="fas fa-search"></i>
+        <input type="text" placeholder="Search or start new chat">
+      </div>
+    </div>
+    
+    <div class="chats-list" id="chats-list">
+      <!-- Chat items will be populated here -->
+    </div>
   </div>
 
-  <div class="chat-container">
+  <!-- Main Chat Area -->
+  <div class="chat-main">
     <div class="chat-header">
-      <h2>Chat Room</h2>
+      <div class="contact-info">
+        <img src="https://i.pravatar.cc/40?img=5" alt="Contact" class="contact-pic">
+        <div class="contact-details">
+          <h3>Group Chat</h3>
+          <span class="status" id="typing-status">Click here for group info</span>
+        </div>
+      </div>
+      <div class="chat-actions">
+        <i class="fas fa-search"></i>
+        <i class="fas fa-paperclip"></i>
+        <i class="fas fa-ellipsis-v"></i>
+      </div>
     </div>
-    <div class="chat-messages" id="chat-messages"></div>
-    <form id="chat-form">
-      <input type="text" id="message-input" placeholder="Type a message..." autocomplete="off" required>
-      <input type="file" id="image-input" accept="image/*">
-      <button type="submit">Send</button>
-      <button type="button" id="voice-btn">🎤</button>
-    </form>
+
+    <div class="chat-background">
+      <div class="chat-messages" id="chat-messages">
+        <!-- Messages will appear here -->
+      </div>
+    </div>
+
+    <div class="message-input-container">
+      <div class="input-wrapper">
+        <i class="fas fa-face-smile emoji-btn"></i>
+        <i class="fas fa-paperclip attach-btn"></i>
+        <input type="text" id="message-input" placeholder="Type a message" autocomplete="off">
+        <input type="file" id="image-input" accept="image/*" style="display: none;">
+        <button type="button" id="send-btn" class="send-btn">
+          <i class="fas fa-paper-plane"></i>
+        </button>
+        <button type="button" id="voice-btn" class="voice-btn">
+          <i class="fas fa-microphone"></i>
+        </button>
+      </div>
+    </div>
   </div>
 </div>
 
