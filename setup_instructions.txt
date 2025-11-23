@@ -1,0 +1,22 @@
+# Redis Setup Instructions
+
+## Linux (Ubuntu/Debian):
+sudo apt update
+sudo apt install redis-server
+redis-server
+
+## Linux (CentOS/RHEL):
+sudo yum install redis
+redis-server
+
+## macOS:
+brew install redis
+redis-server
+
+## Windows (Memurai):
+1. Download from: https://www.memurai.com/
+2. Install and run: memurai.exe
+
+## Test Redis Connection:
+redis-cli ping
+# Should return: PONG

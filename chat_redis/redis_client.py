@@ -1,9 +1,9 @@
 # connect python to redis 
 
-import redis
+import redis as redis_lib
 
 # Initialize Redis client
-redis_client = redis.Redis(
+redis_client = redis_lib.Redis(
     host="localhost",# connect to Redis running on the same machine
     port=6379, # default is 6379
     db=0, #Redis supports multiple logical databases (numbered 0..N). 0 is the default.
@@ -16,3 +16,6 @@ def test_connection():
         print("Connected to Redis!")
     except Exception as e:
         print("Redis connection failed:", e)
+
+if __name__ == "__main__":
+    test_connection()
